@@ -1,0 +1,17 @@
+### 1. Crear sesión — reemplaza "Juan" con tu nombre
+POST http://localhost:8080/login?nombre=Juan
+
+###
+
+### 2. Ver perfil activo
+GET http://localhost:8080/perfil
+
+###
+
+### 3. Cerrar sesión
+DELETE http://localhost:8080/logout
+
+###
+
+### 4. Verificar que la sesión fue destruida
+GET http://localhost:8080/perfil
