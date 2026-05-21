@@ -6,76 +6,61 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * Controlador REST que demuestra el uso de cookies de sesión en Spring Boot.
+ * Controlador REST con autenticación basada en JWT.
  *
- * Una sesión permite al servidor recordar información de un usuario
- * entre múltiples peticiones HTTP. La cookie "MI_SESION" actúa como
- * llave para identificar la sesión en el servidor.
+ * Flujo completo:
+ *   1. Cliente hace POST /login  → recibe un token JWT
+ *   2. Cliente guarda el token
+ *   3. En cada petición envía: Authorization: Bearer <token>
+ *   4. JwtFilter valida el token antes de llegar aquí
  */
 @RestController
 public class SesionController {
 
+    private final JwtUtil jwtUtil;
+
+    public SesionController(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
+
     /**
-     * Endpoint de login: crea una sesión nueva y guarda el nombre del usuario.
-     * Spring Boot genera automáticamente una cookie MI_SESION en la respuesta.
-     *
-     * @param nombre  nombre del usuario recibido como parámetro en la URL
-     * @param sesion  objeto HttpSession inyectado automáticamente por Spring
-     * @return mensaje confirmando la sesión creada con su ID único
+     * Login: recibe el nombre y devuelve un token JWT.
+     * No necesita token previo (es la ruta pública).
      */
     @PostMapping("/login")
-    public String login(@RequestParam String nombre, HttpSession sesion) {
-        // Guardamos el nombre en la sesión del servidor
-        sesion.setAttribute("usuario", nombre);
-        // Guardamos también la hora de inicio de sesión
-        sesion.setAttribute("inicio", System.currentTimeMillis());
-
-        return "Sesion creada para: " + nombre + " | ID: " + sesion.getId();
+    public String login(@RequestParam String nombre) {
+        String token = jwtUtil.generarToken(nombre);
+        return "✅ Login exitoso!\n\n"
+             + "Tu token JWT:\n"
+             + token
+             + "\n\nGuárdalo y úsalo en el header:\n"
+             + "Authorization: Bearer " + token;
     }
 
     /**
-     * Endpoint de perfil: lee los datos guardados en la sesión activa.
-     * El servidor identifica al usuario gracias a la cookie MI_SESION
-     * que el navegador envía automáticamente en cada petición.
-     *
-     * @param sesion  objeto HttpSession con los datos del usuario actual
-     * @return datos del usuario si la sesión existe, mensaje de error si no
+     * Perfil: ruta protegida, solo accesible con token válido.
+     * El JwtFilter ya validó el token antes de llegar aquí.
      */
     @GetMapping("/perfil")
-    public String perfil(HttpSession sesion) {
-        String usuario = (String) sesion.getAttribute("usuario");
-
-        // Si no hay usuario en sesión, significa que no hizo login
-        if (usuario == null) {
-            return "No hay sesion activa. Haz login primero.";
-        }
-
-        // Calculamos cuántos segundos lleva activa la sesión
-        long inicio = (long) sesion.getAttribute("inicio");
-        long segundos = (System.currentTimeMillis() - inicio) / 1000;
-
-        return "Bienvenido: " + usuario
-             + " | Sesion ID: " + sesion.getId()
-             + " | Tiempo activo: " + segundos + "s";
+    public String perfil(HttpServletRequest request) {
+        // Extraemos el token del header y leemos el usuario
+        String token = request.getHeader("Authorization").substring(7);
+        String usuario = jwtUtil.extraerUsuario(token);
+        return "👤 Bienvenido: " + usuario + "\n✅ Tu token JWT es válido.";
     }
 
     /**
-     * Endpoint de logout: invalida la sesión y destruye la cookie.
-     * Después de esto, el ID de sesión ya no es válido en el servidor.
-     *
-     * @param sesion  sesión activa que será destruida
-     * @return mensaje de confirmación con el nombre del usuario desconectado
+     * Logout: con JWT el servidor no destruye nada.
+     * El cliente es responsable de eliminar el token.
      */
     @DeleteMapping("/logout")
-    public String logout(HttpSession sesion) {
-        String usuario = (String) sesion.getAttribute("usuario");
-
-        // invalidate() destruye la sesión y su cookie asociada
-        sesion.invalidate();
-
-        return "Sesion cerrada para: " + usuario;
+    public String logout(HttpServletRequest request) {
+        String token = request.getHeader("Authorization").substring(7);
+        String usuario = jwtUtil.extraerUsuario(token);
+        return "👋 Hasta luego " + usuario + "!\n"
+             + "ℹ️ Elimina el token en tu cliente para cerrar sesión.";
     }
 }

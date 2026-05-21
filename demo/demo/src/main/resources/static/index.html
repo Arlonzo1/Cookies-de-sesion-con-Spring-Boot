@@ -2,73 +2,99 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Demo Sesiones Spring Boot</title>
+  <title>Demo JWT Spring Boot</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 40px 16px; }
-    .card { background: white; border-radius: 12px; padding: 32px; width: 100%; max-width: 480px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
-    h1 { font-size: 20px; margin-bottom: 6px; }
+    .card { background: white; border-radius: 12px; padding: 32px; width: 100%; max-width: 520px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    h1 { font-size: 20px; margin-bottom: 4px; }
     p.sub { font-size: 13px; color: #888; margin-bottom: 24px; }
-    .section { margin-bottom: 20px; }
     label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; }
-    input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
-    .btn-group { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-    button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .2s; }
+    input { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; margin-bottom: 10px; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .2s; min-width: 120px; }
     button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-green  { background: #22c55e; color: white; }
     .btn-blue   { background: #3b82f6; color: white; }
     .btn-red    { background: #ef4444; color: white; }
-    .result { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; font-size: 13px; min-height: 48px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
-    .result.ok    { border-color: #86efac; background: #f0fdf4; color: #166534; }
-    .result.error { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
-    .divider { border: none; border-top: 1px solid #f1f5f9; margin: 20px 0; }
-    .cookie-box { font-size: 12px; color: #64748b; background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px dashed #cbd5e1; word-break: break-all; }
+    .result { border-radius: 8px; padding: 14px; font-size: 13px; min-height: 48px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; margin-bottom: 16px; }
+    .result.idle    { background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; }
+    .result.ok      { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .result.error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+    .token-box { background: #f8fafc; border: 1px dashed #94a3b8; border-radius: 8px; padding: 12px; font-size: 11px; font-family: monospace; word-break: break-all; color: #334155; margin-bottom: 16px; min-height: 40px; }
+    .token-box.activo { border-color: #22c55e; background: #f0fdf4; color: #166534; }
+    .divider { border: none; border-top: 1px solid #f1f5f9; margin: 16px 0; }
+    .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 600; margin-left: 8px; }
+    .badge.on  { background: #dcfce7; color: #16a34a; }
+    .badge.off { background: #fee2e2; color: #dc2626; }
+    .section-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; }
   </style>
 </head>
 <body>
 <div class="card">
-  <h1>🍪 Demo Cookies de Sesión</h1>
-  <p class="sub">Spring Boot — com.example.demo</p>
+  <h1>🔐 Demo JWT — Spring Boot</h1>
+  <p class="sub">com.example.demo — Autenticación con JSON Web Token</p>
 
-  <div class="section">
-    <label>Nombre de usuario</label>
-    <input type="text" id="nombre" placeholder="Ej: Juan" value="Juan">
-    <div class="btn-group">
-      <button class="btn-green" onclick="login()">Login (POST /login)</button>
-    </div>
+  <!-- LOGIN -->
+  <label>Nombre de usuario</label>
+  <input type="text" id="nombre" placeholder="Ej: Juan" value="Juan">
+  <div class="btn-group">
+    <button class="btn-green" onclick="login()">Login — POST /login</button>
   </div>
 
   <hr class="divider">
 
-  <div class="section">
-    <div class="btn-group">
-      <button class="btn-blue" onclick="perfil()">Ver perfil (GET /perfil)</button>
-      <button class="btn-red"  onclick="logout()">Logout (DELETE /logout)</button>
-    </div>
+  <!-- ACCIONES PROTEGIDAS -->
+  <div class="btn-group">
+    <button class="btn-blue" id="btn-perfil" onclick="perfil()" disabled>Ver perfil — GET /perfil</button>
+    <button class="btn-red"  id="btn-logout" onclick="logout()" disabled>Logout — DELETE /logout</button>
   </div>
 
   <hr class="divider">
 
-  <div class="section">
-    <label>Respuesta del servidor</label>
-    <div class="result" id="resultado">Aquí aparecerá la respuesta...</div>
-  </div>
+  <!-- RESPUESTA -->
+  <div class="section-title">Respuesta del servidor</div>
+  <div class="result idle" id="resultado">Aquí aparecerá la respuesta...</div>
 
-  <hr class="divider">
-
-  <div class="section">
-    <label>Cookie activa en el navegador</label>
-    <div class="cookie-box" id="cookie-box">Sin cookie aún</div>
+  <!-- TOKEN -->
+  <div class="section-title">
+    Token JWT guardado
+    <span class="badge off" id="badge-token">Sin token</span>
   </div>
+  <div class="token-box" id="token-box">Haz login para obtener un token...</div>
 </div>
 
 <script>
-  const res  = document.getElementById('resultado');
-  const cbox = document.getElementById('cookie-box');
+  let tokenGuardado = null;
+  const res       = document.getElementById('resultado');
+  const tokenBox  = document.getElementById('token-box');
+  const badge     = document.getElementById('badge-token');
+  const btnPerfil = document.getElementById('btn-perfil');
+  const btnLogout = document.getElementById('btn-logout');
 
-  function updateCookie() {
-    const c = document.cookie || 'Sin cookie (puede ser HttpOnly — solo el servidor la ve)';
-    cbox.textContent = c;
+  function setToken(t) {
+    tokenGuardado = t;
+    if (t) {
+      tokenBox.textContent = t;
+      tokenBox.className = 'token-box activo';
+      badge.textContent = 'Activo';
+      badge.className = 'badge on';
+      btnPerfil.disabled = false;
+      btnLogout.disabled = false;
+    } else {
+      tokenBox.textContent = 'Token eliminado. Haz login de nuevo.';
+      tokenBox.className = 'token-box';
+      badge.textContent = 'Sin token';
+      badge.className = 'badge off';
+      btnPerfil.disabled = true;
+      btnLogout.disabled = true;
+    }
+  }
+
+  function setRes(texto, tipo) {
+    res.textContent = texto;
+    res.className = 'result ' + tipo;
   }
 
   async function login() {
@@ -76,42 +102,49 @@
     try {
       const r = await fetch(`/login?nombre=${encodeURIComponent(nombre)}`, { method: 'POST' });
       const t = await r.text();
-      res.className = 'result ok';
-      res.textContent = '✅ ' + t;
+
+      // Extraemos solo el token de la respuesta
+      const lineas = t.split('\n');
+      const token  = lineas.find(l => l.startsWith('eyJ'));
+
+      if (token) {
+        setToken(token.trim());
+        setRes('✅ Login exitoso! Token guardado en memoria.', 'ok');
+      } else {
+        setRes(t, 'ok');
+      }
     } catch(e) {
-      res.className = 'result error';
-      res.textContent = '❌ Error: ' + e.message;
+      setRes('❌ Error: ' + e.message, 'error');
     }
-    updateCookie();
   }
 
   async function perfil() {
+    if (!tokenGuardado) return;
     try {
-      const r = await fetch('/perfil');
+      const r = await fetch('/perfil', {
+        headers: { 'Authorization': 'Bearer ' + tokenGuardado }
+      });
       const t = await r.text();
-      res.className = t.includes('No hay') ? 'result error' : 'result ok';
-      res.textContent = (t.includes('No hay') ? '❌ ' : '👤 ') + t;
+      setRes(r.ok ? '👤 ' + t : '❌ ' + t, r.ok ? 'ok' : 'error');
     } catch(e) {
-      res.className = 'result error';
-      res.textContent = '❌ Error: ' + e.message;
+      setRes('❌ Error: ' + e.message, 'error');
     }
-    updateCookie();
   }
 
   async function logout() {
+    if (!tokenGuardado) return;
     try {
-      const r = await fetch('/logout', { method: 'DELETE' });
+      const r = await fetch('/logout', {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + tokenGuardado }
+      });
       const t = await r.text();
-      res.className = 'result ok';
-      res.textContent = '👋 ' + t;
+      setRes('👋 ' + t, 'ok');
+      setToken(null);
     } catch(e) {
-      res.className = 'result error';
-      res.textContent = '❌ Error: ' + e.message;
+      setRes('❌ Error: ' + e.message, 'error');
     }
-    updateCookie();
   }
-
-  updateCookie();
 </script>
 </body>
 </html>
